@@ -33,13 +33,22 @@ export default defineConfig({
         secure: false
       },
       // 공개 카탈로그(프로그램 목록/상세)는 게이트웨이가 비로그인 요청에 401을 준다.
-      // course-service 자체는 GET /api/courses 를 permitAll 로 열어두므로, 비로그인 열람은
-      // 게이트웨이를 건너뛰고 course-service(:8082)로 직접 프록시한다. (읽기 전용)
-      '/course-service': {
+      // program-service 자체는 GET /api/programs 를 permitAll 로 열어두므로, 비로그인 열람은
+      // 게이트웨이를 건너뛰고 program-service(:8082)로 직접 프록시한다. (읽기 전용)
+      '/program-service': {
         target: 'http://localhost:8082',
         changeOrigin: true,
         secure: false,
-        rewrite: (p) => p.replace(/^\/course-service/, '')
+        rewrite: (p) => p.replace(/^\/program-service/, ''),
+        // nginx.conf 와 같은 규칙: 읽기(GET/HEAD)만 허용하고 /internal/ 은 노출하지 않는다.
+        bypass(req, res) {
+          const readOnly = req.method === 'GET' || req.method === 'HEAD'
+          if (!readOnly || /\/internal\//.test(req.url)) {
+            res.statusCode = readOnly ? 404 : 405
+            res.end()
+            return false
+          }
+        }
       },
       '/oauth2': { ...authProxy },
       '/login': {

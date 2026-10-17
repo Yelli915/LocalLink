@@ -21,7 +21,7 @@ api.interceptors.request.use((config) => {
 // 화면 쪽에서 예시(목업) 데이터로 폴백한다.
 const PUBLIC_PATHS = ['/callback', '/login', '/']
 function isPublicPath(path) {
-  return PUBLIC_PATHS.includes(path) || path.startsWith('/courses')
+  return PUBLIC_PATHS.includes(path) || path.startsWith('/programs')
 }
 
 api.interceptors.response.use(

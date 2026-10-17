@@ -5,9 +5,9 @@
     <div class="apply-layout">
       <div class="apply-container">
         <nav class="breadcrumb" aria-label="위치">
-          <router-link to="/courses" class="bc-link">공동물류 프로그램</router-link>
+          <router-link to="/programs" class="bc-link">공동물류 프로그램</router-link>
           <span class="bc-sep" aria-hidden="true">›</span>
-          <router-link v-if="course" :to="`/courses/${course.id}`" class="bc-link">{{ course.title }}</router-link>
+          <router-link v-if="program" :to="`/programs/${program.id}`" class="bc-link">{{ program.title }}</router-link>
           <span class="bc-sep" aria-hidden="true">›</span>
           <span class="bc-current">참여 신청</span>
         </nav>
@@ -36,26 +36,26 @@
         </div>
 
         <!-- 프로그램 로드 실패 -->
-        <div v-else-if="!course" class="apply-card surface-card">
+        <div v-else-if="!program" class="apply-card surface-card">
           <p class="empty-text">프로그램 정보를 불러오지 못했습니다.</p>
-          <router-link to="/courses" class="btn btn-primary">프로그램 목록으로</router-link>
+          <router-link to="/programs" class="btn btn-primary">프로그램 목록으로</router-link>
         </div>
 
         <template v-else>
-          <!-- STEP 2: 분담금 결제 확인 -->
+          <!-- STEP 2: 분담금 정산 확인 -->
           <section v-if="step === 2" class="apply-card surface-card fade-in">
-            <h2 class="apply-title">분담금 결제 확인</h2>
+            <h2 class="apply-title">분담금 정산 확인</h2>
             <p class="apply-sub">
               아래 실부담금으로 정산이 진행되며, 정산이 완료되면 참여가 자동으로 확정됩니다.
             </p>
 
             <div class="program-strip">
               <div class="program-thumb" :class="meta.bg">
-                <CategoryIcon :category="course.category" class="program-thumb-icon" />
+                <CategoryIcon :category="program.category" class="program-thumb-icon" />
               </div>
               <div>
                 <span class="badge" :class="meta.badge">{{ meta.label }}</span>
-                <h3 class="program-name">{{ course.title }}</h3>
+                <h3 class="program-name">{{ program.title }}</h3>
               </div>
             </div>
 
@@ -77,14 +77,14 @@
             <div v-if="error" class="alert alert-error">{{ error }}</div>
 
             <div class="apply-actions">
-              <router-link :to="`/courses/${course.id}`" class="btn btn-ghost">돌아가기</router-link>
+              <router-link :to="`/programs/${program.id}`" class="btn btn-ghost">돌아가기</router-link>
               <button
                 class="btn btn-primary"
                 :disabled="submitting || basePrice <= 0"
                 @click="confirmPayAndApply"
               >
                 <span v-if="submitting">처리 중...</span>
-                <span v-else>결제하고 참여 신청</span>
+                <span v-else>정산하고 참여 신청</span>
               </button>
             </div>
             <p v-if="basePrice <= 0" class="helper-text">
@@ -138,11 +138,11 @@
 
             <div class="program-strip">
               <div class="program-thumb" :class="meta.bg">
-                <CategoryIcon :category="course.category" class="program-thumb-icon" />
+                <CategoryIcon :category="program.category" class="program-thumb-icon" />
               </div>
               <div>
                 <span class="badge" :class="meta.badge">{{ meta.label }}</span>
-                <h3 class="program-name">{{ course.title }}</h3>
+                <h3 class="program-name">{{ program.title }}</h3>
               </div>
             </div>
 
@@ -156,7 +156,7 @@
                 <dd>− ₩{{ subsidyAmount.toLocaleString() }}</dd>
               </div>
               <div class="cost-row cost-row-total">
-                <dt>결제 실부담금</dt>
+                <dt>정산 실부담금</dt>
                 <dd>₩{{ netPrice.toLocaleString() }}</dd>
               </div>
               <div class="cost-row">
@@ -166,7 +166,7 @@
             </dl>
 
             <div class="apply-actions">
-              <router-link to="/courses" class="btn btn-ghost">다른 프로그램 보기</router-link>
+              <router-link to="/programs" class="btn btn-ghost">다른 프로그램 보기</router-link>
               <router-link to="/mypage" class="btn btn-primary">내 참여 현황으로</router-link>
             </div>
           </section>
@@ -184,18 +184,18 @@ import { useRoute, useRouter } from 'vue-router'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import CategoryIcon from '@/components/CategoryIcon.vue'
-import { useCourseStore, netBurden, SUBSIDY_RATE } from '@/store/course.js'
+import { useProgramStore, netBurden, SUBSIDY_RATE } from '@/store/program.js'
 import { useAuthStore } from '@/store/auth.js'
-import { enrollmentApi } from '@/api/enrollment.js'
+import { participationApi } from '@/api/participation.js'
 
 const route = useRoute()
 const router = useRouter()
-const courseStore = useCourseStore()
+const programStore = useProgramStore()
 const auth = useAuthStore()
 
 const stepMeta = [
   { n: 1, label: '신청 상태 확인' },
-  { n: 2, label: '분담금 결제' },
+  { n: 2, label: '분담금 정산' },
   { n: 3, label: '참여 신청' },
   { n: 4, label: '지원 내용·비용 확인' },
 ]
@@ -205,47 +205,47 @@ const step = ref(1)
 const submitting = ref(false)
 const checkingNow = ref(false)
 const error = ref('')
-const enrollmentStatus = ref('NONE') // NONE | PENDING | ACTIVE
+const participationStatus = ref('NONE') // NONE | PENDING | ACTIVE
 const pollExhausted = ref(false)
 
-const course = computed(() => courseStore.selectedCourse)
-const isMockFlow = computed(() => courseStore.usingMock)
-const meta = computed(() => courseStore.categoryMeta(course.value?.category))
+const program = computed(() => programStore.selectedProgram)
+const isMockFlow = computed(() => programStore.usingMock)
+const meta = computed(() => programStore.categoryMeta(program.value?.category))
 
 const basePrice = computed(() => {
-  const v = Number(course.value?.price ?? 0)
+  const v = Number(program.value?.price ?? 0)
   return Number.isNaN(v) ? 0 : v
 })
 const netPrice = computed(() => netBurden(basePrice.value))
 const subsidyAmount = computed(() => Math.max(0, basePrice.value - netPrice.value))
 const subsidyPercent = Math.round(SUBSIDY_RATE * 100)
 
-const courseSnapshot = computed(() => ({
-  title: course.value?.title,
-  category: course.value?.category,
-  price: course.value?.price,
+const programSnapshot = computed(() => ({
+  title: program.value?.title,
+  category: program.value?.category,
+  price: program.value?.price,
 }))
 
-/** 이 프로그램에 대한 내 신청 상태를 조회해 enrollmentStatus 를 갱신한다. */
+/** 이 프로그램에 대한 내 신청 상태를 조회해 participationStatus 를 갱신한다. */
 async function loadStatus() {
   try {
-    const res = await enrollmentApi.getMyEnrollments()
+    const res = await participationApi.getMyParticipations()
     const list = Array.isArray(res.data?.data)
       ? res.data.data
       : Array.isArray(res.data)
         ? res.data
         : []
-    const matched = list.find((e) => Number(e.courseId) === Number(route.params.id))
-    enrollmentStatus.value = !matched ? 'NONE' : matched.status === 'ACTIVE' ? 'ACTIVE' : 'PENDING'
+    const matched = list.find((e) => Number(e.programId) === Number(route.params.id))
+    participationStatus.value = !matched ? 'NONE' : matched.status === 'ACTIVE' ? 'ACTIVE' : 'PENDING'
   } catch (e) {
     console.error('[ProgramApply] 신청 상태 조회 실패:', e)
-    enrollmentStatus.value = 'NONE'
+    participationStatus.value = 'NONE'
   }
 }
 
 /* ── 정산 대기 → 참여 확정 폴링 ──
- * PENDING→ACTIVE 는 payment.completed Kafka 이벤트로 비동기 처리되고 프론트로 푸시되지 않는다.
- * 백엔드 변경 없이 GET /api/enrollments/my 를 잠시 폴링한다. (CourseDetailView 와 같은 패턴) */
+ * PENDING→ACTIVE 는 settlement.completed Kafka 이벤트로 비동기 처리되고 프론트로 푸시되지 않는다.
+ * 백엔드 변경 없이 GET /api/participations/my 를 잠시 폴링한다. (ProgramDetailView 와 같은 패턴) */
 const POLL_INTERVAL = 3000
 const POLL_MAX_TRIES = 8
 let pollTimer = null
@@ -258,13 +258,13 @@ function stopPolling() {
 }
 
 function startPolling() {
-  if (pollTimer || enrollmentStatus.value !== 'PENDING') return
+  if (pollTimer || participationStatus.value !== 'PENDING') return
   pollExhausted.value = false
   let tries = 0
   pollTimer = setInterval(async () => {
     tries += 1
     await loadStatus()
-    if (enrollmentStatus.value === 'ACTIVE') {
+    if (participationStatus.value === 'ACTIVE') {
       stopPolling()
       step.value = 4
     } else if (tries >= POLL_MAX_TRIES) {
@@ -274,20 +274,20 @@ function startPolling() {
   }, POLL_INTERVAL)
 }
 
-/** STEP 2 버튼: 분담금 결제 = 참여 신청 (POST /api/enrollments 한 번) */
+/** STEP 2 버튼: 분담금 정산 = 참여 신청 (POST /api/participations 한 번) */
 async function confirmPayAndApply() {
   error.value = ''
-  if (!course.value?.id) {
+  if (!program.value?.id) {
     error.value = '프로그램 정보가 올바르지 않습니다.'
     return
   }
   submitting.value = true
   try {
     // 카탈로그가 실데이터면 목업 폴백을 끄고 실제 백엔드 에러를 노출한다.
-    await enrollmentApi.enroll(course.value.id, courseSnapshot.value, {
+    await participationApi.participate(program.value.id, programSnapshot.value, {
       allowMockFallback: isMockFlow.value,
     })
-    enrollmentStatus.value = 'PENDING'
+    participationStatus.value = 'PENDING'
     step.value = 3
     startPolling()
   } catch (e) {
@@ -295,7 +295,7 @@ async function confirmPayAndApply() {
     error.value =
       e.response?.data?.message ||
       e.response?.data?.error ||
-      '결제·참여 신청에 실패했습니다. 잠시 후 다시 시도해 주세요.'
+      '정산·참여 신청에 실패했습니다. 잠시 후 다시 시도해 주세요.'
   } finally {
     submitting.value = false
   }
@@ -306,12 +306,12 @@ async function checkOnce() {
   checkingNow.value = true
   try {
     await loadStatus()
-    if (enrollmentStatus.value === 'ACTIVE') {
+    if (participationStatus.value === 'ACTIVE') {
       stopPolling()
       step.value = 4
     } else if (!pollTimer) {
       // 폴링이 끝났으면 다시 한 텀 돌린다
-      enrollmentStatus.value = 'PENDING'
+      participationStatus.value = 'PENDING'
       startPolling()
     }
   } finally {
@@ -320,20 +320,20 @@ async function checkOnce() {
 }
 
 onMounted(async () => {
-  await courseStore.fetchCourse(route.params.id)
+  await programStore.fetchProgram(route.params.id)
 
   // 지자체 담당자는 참여 신청 대상이 아니다 → 상세로 되돌린다.
-  if (auth.user?.role === 'INSTRUCTOR') {
-    router.replace(`/courses/${route.params.id}`)
+  if (auth.user?.role === 'GOV_OFFICER') {
+    router.replace(`/programs/${route.params.id}`)
     return
   }
 
   await loadStatus()
   loading.value = false
 
-  if (enrollmentStatus.value === 'ACTIVE') {
+  if (participationStatus.value === 'ACTIVE') {
     step.value = 4
-  } else if (enrollmentStatus.value === 'PENDING') {
+  } else if (participationStatus.value === 'PENDING') {
     step.value = 3
     startPolling()
   } else {

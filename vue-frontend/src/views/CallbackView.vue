@@ -68,7 +68,7 @@ function consumePostLoginRedirect() {
     !stored.startsWith('/login') &&
     !stored.startsWith('/callback')
     ? stored
-    : '/courses'
+    : '/programs'
 }
 </script>
 

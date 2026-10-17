@@ -82,19 +82,19 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useCourseStore } from '@/store/course.js'
+import { useProgramStore } from '@/store/program.js'
 
 /**
  * 배송유형(카테고리)별 단색 라인 아이콘.
- * category 에는 원본 enum('BACKEND') 또는 표시 라벨('당일 공동배송') 아무거나 넣어도 된다
+ * category 에는 원본 enum('SAME_DAY') 또는 표시 라벨('당일 공동배송') 아무거나 넣어도 된다
  * — store 의 categoryMeta 가 둘 다 해석한다.
  */
 const props = defineProps({
   category: { type: String, default: '' },
 })
 
-const courseStore = useCourseStore()
-const meta = computed(() => courseStore.categoryMeta(props.category))
+const programStore = useProgramStore()
+const meta = computed(() => programStore.categoryMeta(props.category))
 const name = computed(() => {
   if (props.category === '전체') return 'grid'
   return meta.value.icon || 'package'

@@ -105,7 +105,7 @@
           <div class="stat-lead">
             <span class="stat-lead-label">누적 절감 배송비</span>
             <span class="stat-lead-num">약 62억 원</span>
-            <span class="stat-lead-sub">2024–2025 참여 프로그램 합산 · 교육용 예시 수치</span>
+            <span class="stat-lead-sub">2024–2025 참여 프로그램 합산 · 시연용 예시 수치</span>
           </div>
           <div class="stat-cards">
             <div v-for="s in stats" :key="s.label" class="stat-card">
@@ -119,7 +119,7 @@
     </section>
 
     <!-- 인기 프로그램 (실제/예시 프로그램이 하나도 없으면 섹션 자체를 숨긴다) -->
-    <section v-if="featuredCourses.length" class="popular-section">
+    <section v-if="featuredPrograms.length" class="popular-section">
       <div class="section-inner">
         <div class="section-header">
           <div>
@@ -131,32 +131,32 @@
         </div>
 
         <p v-if="isSample" class="sample-note">
-          현재 표시되는 프로그램은 데모용 예시입니다. course-service에 프로그램이 등록되면 자동으로 실제 목록으로 바뀝니다.
+          현재 표시되는 프로그램은 데모용 예시입니다. program-service에 프로그램이 등록되면 자동으로 실제 목록으로 바뀝니다.
         </p>
 
-        <div class="course-grid">
+        <div class="program-grid">
           <router-link
-            v-for="course in featuredCourses"
-            :key="course.id"
-            :to="programLink(course)"
-            class="course-card-landing"
+            v-for="program in featuredPrograms"
+            :key="program.id"
+            :to="programLink(program)"
+            class="program-card-landing"
           >
-            <div class="card-thumb" :class="course.bg">
+            <div class="card-thumb" :class="program.bg">
               <span class="recruit-pill"><i class="recruit-dot"></i>모집 중</span>
-              <CategoryIcon :category="course.categoryValue" class="thumb-icon" />
+              <CategoryIcon :category="program.categoryValue" class="thumb-icon" />
             </div>
             <div class="card-body">
-              <span class="badge" :class="course.badgeClass">{{ course.label }}</span>
-              <h3 class="card-title">{{ course.title }}</h3>
+              <span class="badge" :class="program.badgeClass">{{ program.label }}</span>
+              <h3 class="card-title">{{ program.title }}</h3>
 
               <div class="card-price">
-                <span class="price-net">₩{{ course.netPrice.toLocaleString() }}</span>
-                <span class="price-base">정가 ₩{{ course.basePrice.toLocaleString() }}</span>
+                <span class="price-net">₩{{ program.netPrice.toLocaleString() }}</span>
+                <span class="price-base">정가 ₩{{ program.basePrice.toLocaleString() }}</span>
                 <span class="price-tag">지원금 {{ subsidyPercent }}%</span>
               </div>
 
               <div class="card-meta">
-                <span class="enroll-count">{{ course.enrollmentCount.toLocaleString() }}곳 참여 신청</span>
+                <span class="participate-count">{{ program.participationCount.toLocaleString() }}곳 참여 신청</span>
               </div>
 
               <span class="card-cta">자세히 보기 →</span>
@@ -170,7 +170,7 @@
     <section class="features-section">
       <div class="section-inner">
         <span class="section-eyebrow center">어떻게 배송비를 줄이나요?</span>
-        <h2 class="section-title center">물류이음이 하는 일</h2>
+        <h2 class="section-title center">LocalLink가 하는 일</h2>
         <div class="features-grid">
           <div v-for="f in features" :key="f.title" class="feature-card">
             <div class="feature-icon">
@@ -214,12 +214,12 @@ import { ref, computed, onMounted } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import AppFooter from '@/components/AppFooter.vue'
 import CategoryIcon from '@/components/CategoryIcon.vue'
-import { courseApi } from '@/api/course.js'
-import { useCourseStore, SAMPLE_PROGRAMS, SUBSIDY_RATE, netBurden } from '@/store/course.js'
-import { isMockEnabled } from '@/config/mock.js'
+import { programApi } from '@/api/program.js'
+import { useProgramStore, SAMPLE_PROGRAMS, SUBSIDY_RATE, netBurden } from '@/store/program.js'
+import { isMockEnabled, markDemo } from '@/config/mock.js'
 import { useAuthStore } from '@/store/auth.js'
 
-const courseStore = useCourseStore()
+const programStore = useProgramStore()
 const auth = useAuthStore()
 
 /* 히어로 타깃 전환 — 소상공인 / 지자체 담당자별 카피·CTA 분리.
@@ -242,9 +242,9 @@ const AUDIENCE = {
       '원클릭 신청 즉시 접수 · 배차 시작',
     ],
     primaryLabel: '소상공인 참여 신청',
-    primaryTo: { path: '/login', query: { tab: 'register', role: 'STUDENT' } },
+    primaryTo: { path: '/login', query: { tab: 'register', role: 'MERCHANT' } },
     secondaryLabel: '프로그램 둘러보기',
-    secondaryTo: { path: '/courses' },
+    secondaryTo: { path: '/programs' },
   },
   officer: {
     title: '관내 소상공인 배송비,<br>우리 지자체가 함께 풉니다',
@@ -255,9 +255,9 @@ const AUDIENCE = {
       '관내 상권 데이터 기반 참여 리포트',
     ],
     primaryLabel: '지자체 프로그램 개설',
-    primaryTo: { path: '/login', query: { tab: 'register', role: 'INSTRUCTOR', redirect: '/courses/new' } },
+    primaryTo: { path: '/login', query: { tab: 'register', role: 'GOV_OFFICER', redirect: '/programs/new' } },
     secondaryLabel: '담당자 로그인',
-    secondaryTo: { path: '/login', query: { redirect: '/courses/new' } },
+    secondaryTo: { path: '/login', query: { redirect: '/programs/new' } },
   },
 }
 
@@ -267,12 +267,12 @@ const view = computed(() => {
   const base = AUDIENCE[audience.value]
   if (!auth.isAuthenticated) return base
 
-  const isInstructor = auth.user?.role === 'INSTRUCTOR'
+  const isOfficer = auth.user?.role === 'GOV_OFFICER'
   if (audience.value === 'officer') {
     return {
       ...base,
-      primaryLabel: isInstructor ? '프로그램 개설하기' : '프로그램 둘러보기',
-      primaryTo: { path: isInstructor ? '/courses/new' : '/courses' },
+      primaryLabel: isOfficer ? '프로그램 개설하기' : '프로그램 둘러보기',
+      primaryTo: { path: isOfficer ? '/programs/new' : '/programs' },
       secondaryLabel: '마이페이지',
       secondaryTo: { path: '/mypage' },
     }
@@ -280,7 +280,7 @@ const view = computed(() => {
   return {
     ...base,
     primaryLabel: '프로그램 참여하러 가기',
-    primaryTo: { path: '/courses' },
+    primaryTo: { path: '/programs' },
   }
 })
 
@@ -303,8 +303,8 @@ const stats = [
 ]
 
 /* 인기 프로그램 목록.
-   - 로그인 전이라도 course-service GET /api/courses 를 시도해 "실제 모집 중인 프로그램"을 보여준다.
-   - 라벨/배지/썸네일/아이콘은 courseStore.categoryMeta 가 단일 소스(수동 동기화 제거).
+   - 로그인 전이라도 program-service GET /api/programs 를 시도해 "실제 모집 중인 프로그램"을 보여준다.
+   - 라벨/배지/썸네일/아이콘은 programStore.categoryMeta 가 단일 소스(수동 동기화 제거).
    - 분담금은 정가와 지자체 지원금 반영 실부담(netBurden)을 함께 노출한다.
    - 목업 스위치(VITE_ENABLE_MOCK)가 켜져 있을 때만 조회 실패/빈 결과에서 SAMPLE_PROGRAMS 를 "예시"로 폴백한다.
      꺼져 있으면 실제 목록만 쓰고, 없으면 이 섹션 자체를 숨긴다. */
@@ -313,10 +313,10 @@ const rawPrograms = ref(mockOn ? SAMPLE_PROGRAMS : [])
 const isSample = ref(mockOn)
 const subsidyPercent = Math.round(SUBSIDY_RATE * 100)
 
-const featuredCourses = computed(() =>
+const featuredPrograms = computed(() =>
   rawPrograms.value.slice(0, 6).map((c) => {
     const categoryValue = c.category ?? c.categoryKey
-    const meta = courseStore.categoryMeta(categoryValue)
+    const meta = programStore.categoryMeta(categoryValue)
     const base = Number(c.price) || 0
     return {
       id: c.id,
@@ -328,26 +328,26 @@ const featuredCourses = computed(() =>
       bg: meta.bg,
       basePrice: base,
       netPrice: netBurden(base),
-      enrollmentCount: Number(c.enrollmentCount) || 0,
+      participationCount: Number(c.participationCount) || 0,
     }
   })
 )
 
 // 목록/상세는 공개 페이지 — 로그인 없이 바로 연결한다.
-function programLink(course) {
-  return `/courses/${course.id}`
+function programLink(program) {
+  return `/programs/${program.id}`
 }
-const allProgramsLink = '/courses'
+const allProgramsLink = '/programs'
 
 onMounted(async () => {
   try {
-    // 로그인 상태면 게이트웨이 경유, 401(비로그인)이면 course-service 직접 조회로 폴백.
+    // 로그인 상태면 게이트웨이 경유, 401(비로그인)이면 program-service 직접 조회로 폴백.
     let res
     try {
-      res = await courseApi.getAll()
+      res = await programApi.getAll()
     } catch (e) {
       if (e.response?.status === 401) {
-        res = await courseApi.getPublicCourses()
+        res = await programApi.getPublicPrograms()
       } else {
         throw e
       }
@@ -359,7 +359,7 @@ onMounted(async () => {
         : []
     if (list.length) {
       rawPrograms.value = [...list].sort(
-        (a, b) => (Number(b.enrollmentCount) || 0) - (Number(a.enrollmentCount) || 0)
+        (a, b) => (Number(b.participationCount) || 0) - (Number(a.participationCount) || 0)
       )
       isSample.value = false
     } else if (!mockOn) {
@@ -375,6 +375,7 @@ onMounted(async () => {
       isSample.value = false
     }
   }
+  if (isSample.value) markDemo()
 })
 
 const features = [
@@ -664,12 +665,12 @@ const features = [
   font-weight: 600;
 }
 
-.course-grid {
+.program-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
-.course-card-landing {
+.program-card-landing {
   display: flex;
   flex-direction: column;
   background: var(--color-bg-primary);
@@ -678,16 +679,16 @@ const features = [
   overflow: hidden;
   transition: var(--transition);
 }
-.course-card-landing:hover {
+.program-card-landing:hover {
   transform: translateY(-3px);
   border-color: var(--color-primary);
   box-shadow: var(--shadow-md);
 }
-.course-card-landing:focus-visible {
+.program-card-landing:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
-.course-card-landing:hover .card-cta { color: var(--color-primary); }
+.program-card-landing:hover .card-cta { color: var(--color-primary); }
 .card-thumb {
   position: relative;
   height: 116px;
@@ -734,7 +735,7 @@ const features = [
 }
 
 .card-meta { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
-.enroll-count { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); white-space: nowrap; }
+.participate-count { font-size: 12px; font-weight: 600; color: var(--color-text-secondary); white-space: nowrap; }
 
 .card-cta {
   margin-top: auto;
@@ -794,11 +795,11 @@ const features = [
   .hero-title { font-size: 36px; }
   .stats-inner { flex-direction: column; align-items: stretch; gap: 18px; }
   .stat-lead { padding-right: 0; padding-bottom: 16px; border-right: none; border-bottom: 1px solid var(--color-border); }
-  .course-grid { grid-template-columns: repeat(2, 1fr); }
+  .program-grid { grid-template-columns: repeat(2, 1fr); }
   .features-grid { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 560px) {
-  .course-grid { grid-template-columns: 1fr; }
+  .program-grid { grid-template-columns: 1fr; }
   .features-grid { grid-template-columns: 1fr; }
   .hero-title { font-size: 29px; }
   .audience-switch { display: flex; width: 100%; }

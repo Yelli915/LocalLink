@@ -57,7 +57,7 @@ export const authApi = {
    *      최종적으로 {redirect_uri}/callback?code=... 에 착지
    *   3) 최종 URL에서 code 추출
    *
-   * 전제: auth-server가 CSRF 미적용, consent 화면 비활성 — 현재 lecture auth-server 설정에서 확인됨.
+   * 전제: auth-server가 CSRF 미적용, consent 화면 비활성 — 현재 LocalLink auth-server 설정에서 확인됨.
    * 프록시가 리다이렉트 Location(http://localhost:8080/...)을 현재 호스트로 rewrite 해주므로
    * (vite: autoRewrite, nginx: proxy_redirect) fetch가 same-origin 체인을 따라간다.
    */

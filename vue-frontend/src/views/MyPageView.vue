@@ -7,17 +7,17 @@
       <main class="main-content dashboard">
         <div class="content-header">
           <div>
-            <h1 class="page-title">{{ isInstructor ? '내 프로그램 관리' : '마이페이지' }}</h1>
+            <h1 class="page-title">{{ isOfficer ? '내 프로그램 관리' : '마이페이지' }}</h1>
             <p class="page-subtitle">
-              {{ isInstructor
+              {{ isOfficer
                 ? '등록한 공동물류 프로그램과 참여 소상공인 현황을 한눈에 관리합니다.'
                 : '내 참여 현황과 정산 상태, 우리 가게에 맞는 추천 프로그램을 한눈에 확인합니다.' }}
             </p>
           </div>
 
           <router-link
-            v-if="isInstructor"
-            to="/courses/new"
+            v-if="isOfficer"
+            to="/programs/new"
             class="btn btn-primary header-action"
           >
             + 새 공동물류 프로그램 등록
@@ -31,27 +31,27 @@
             <h2 class="profile-name">{{ auth.user?.name || '사용자' }}</h2>
             <p class="profile-email">{{ auth.user?.email || '-' }}</p>
           </div>
-          <span class="badge profile-role" :class="isInstructor ? 'badge-amber' : 'badge-blue'">
-            {{ isInstructor ? '🏢 지자체 담당자' : '🏪 소상공인' }}
+          <span class="badge profile-role" :class="isOfficer ? 'badge-amber' : 'badge-blue'">
+            {{ isOfficer ? '🏢 지자체 담당자' : '🏪 소상공인' }}
           </span>
         </div>
 
         <!-- ============ 소상공인 대시보드 ============ -->
-        <template v-if="!isInstructor">
+        <template v-if="!isOfficer">
           <!-- KPI 타일 -->
           <div class="kpi-grid">
             <div class="kpi-tile">
               <span class="kpi-ic kpi-ic-green">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
               </span>
-              <span class="kpi-value">{{ enrollmentLoading ? '–' : activeEnrollments.length }}</span>
+              <span class="kpi-value">{{ participationLoading ? '–' : activeParticipations.length }}</span>
               <span class="kpi-label">참여 확정</span>
             </div>
             <div class="kpi-tile">
               <span class="kpi-ic kpi-ic-amber">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
               </span>
-              <span class="kpi-value">{{ enrollmentLoading ? '–' : pendingEnrollments.length }}</span>
+              <span class="kpi-value">{{ participationLoading ? '–' : pendingParticipations.length }}</span>
               <span class="kpi-label">정산 대기</span>
             </div>
             <div class="kpi-tile">
@@ -59,36 +59,36 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
               </span>
               <span class="kpi-value kpi-value-amount">
-                {{ enrollmentLoading ? '–' : `₩${totalContribution.toLocaleString()}` }}
+                {{ participationLoading ? '–' : `₩${totalContribution.toLocaleString()}` }}
               </span>
               <span class="kpi-label">분담금 합계</span>
             </div>
           </div>
 
-          <p v-if="enrollmentIsMock" class="alert alert-info">
-            데모용 예시 참여 내역입니다. 백엔드(enrollment-service)가 연결되면 실제 신청 내역으로 바뀝니다.
+          <p v-if="participationIsMock" class="alert alert-info">
+            데모용 예시 참여 내역입니다. 백엔드(participation-service)가 연결되면 실제 신청 내역으로 바뀝니다.
           </p>
           <p
-            v-if="!enrollmentLoading && pendingEnrollments.length"
+            v-if="!participationLoading && pendingParticipations.length"
             class="alert alert-warn pending-alert"
           >
-            정산 대기 중인 참여 신청이 {{ pendingEnrollments.length }}건 있습니다.
+            정산 대기 중인 참여 신청이 {{ pendingParticipations.length }}건 있습니다.
             정산이 완료되면 참여가 자동으로 확정됩니다.
           </p>
-          <p v-if="!enrollmentLoading && pollTimerActive" class="alert alert-info">
+          <p v-if="!participationLoading && pollTimerActive" class="alert alert-info">
             정산 처리 결과를 확인하는 중입니다. 잠시 후 상태가 자동으로 갱신됩니다.
           </p>
 
           <!-- 위젯: 내 참여 현황 -->
-          <section id="my-enrollments" class="widget surface-card">
+          <section id="my-participations" class="widget surface-card">
             <div class="widget-head">
               <h3 class="section-title">내 참여 현황</h3>
-              <span v-if="!enrollmentLoading && myEnrollments.length" class="widget-meta">
-                총 {{ myEnrollments.length }}건
+              <span v-if="!participationLoading && myParticipations.length" class="widget-meta">
+                총 {{ myParticipations.length }}건
               </span>
             </div>
 
-            <div v-if="enrollmentLoading" class="recent-list">
+            <div v-if="participationLoading" class="recent-list">
               <div v-for="i in 2" :key="i" class="skeleton-card recent-skeleton">
                 <div class="skeleton-body">
                   <div class="skeleton-line short"></div>
@@ -97,19 +97,19 @@
               </div>
             </div>
 
-            <div v-else-if="sortedEnrollments.length" class="recent-list fade-in">
-              <div v-for="item in sortedEnrollments" :key="item.id" class="recent-card">
-                <div class="recent-thumb" :class="enrollmentMeta(item).bg">
-                  <CategoryIcon :category="item?.course?.category" class="recent-thumb-icon" />
+            <div v-else-if="sortedParticipations.length" class="recent-list fade-in">
+              <div v-for="item in sortedParticipations" :key="item.id" class="recent-card">
+                <div class="recent-thumb" :class="participationMeta(item).bg">
+                  <CategoryIcon :category="item?.program?.category" class="recent-thumb-icon" />
                 </div>
 
                 <div class="recent-info">
-                  <span class="badge" :class="enrollmentMeta(item).badge">
-                    {{ enrollmentMeta(item).label }}
+                  <span class="badge" :class="participationMeta(item).badge">
+                    {{ participationMeta(item).label }}
                   </span>
-                  <h4 class="recent-title">{{ item.course?.title || '공동물류 프로그램' }}</h4>
+                  <h4 class="recent-title">{{ item.program?.title || '공동물류 프로그램' }}</h4>
 
-                  <!-- 신청 → 정산 → 참여확정 라이프사이클 (enrollment saga 가시화) -->
+                  <!-- 신청 → 정산 → 참여확정 라이프사이클 (participation saga 가시화) -->
                   <ol class="lifecycle">
                     <li class="lifecycle-step done">
                       <span class="lifecycle-dot"></span>신청 접수
@@ -131,13 +131,13 @@
                     {{ item.status === 'ACTIVE' ? '참여 확정' : '정산 대기' }}
                   </span>
                   <router-link
-                    v-if="item.status !== 'ACTIVE' && !enrollmentIsMock"
-                    :to="`/courses/${item.courseId}/apply`"
+                    v-if="item.status !== 'ACTIVE' && !participationIsMock"
+                    :to="`/programs/${item.programId}/apply`"
                     class="btn btn-primary btn-sm"
                   >
                     정산 상태 보기
                   </router-link>
-                  <router-link :to="`/courses/${item.courseId}`" class="btn btn-ghost btn-sm">
+                  <router-link :to="`/programs/${item.programId}`" class="btn btn-ghost btn-sm">
                     프로그램 보기
                   </router-link>
                 </div>
@@ -150,7 +150,7 @@
                 우리 지역에서 열린 공동물류 프로그램에 참여해 배송비 부담을 함께 줄여보세요.
               </p>
               <div class="empty-actions">
-                <router-link to="/courses" class="btn btn-primary">프로그램 둘러보기</router-link>
+                <router-link to="/programs" class="btn btn-primary">프로그램 둘러보기</router-link>
               </div>
             </div>
           </section>
@@ -175,8 +175,8 @@
 
             <div v-else-if="recommendations.length" class="recommend-grid fade-in">
               <div v-for="c in recommendations" :key="c.id" class="recommend-item">
-                <CourseCard :course="c" />
-                <router-link :to="`/courses/${c.id}/apply`" class="btn btn-primary btn-sm recommend-apply">
+                <ProgramCard :program="c" />
+                <router-link :to="`/programs/${c.id}/apply`" class="btn btn-primary btn-sm recommend-apply">
                   이 프로그램 참여 신청
                 </router-link>
               </div>
@@ -195,21 +195,21 @@
               <span class="kpi-ic kpi-ic-blue">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/></svg>
               </span>
-              <span class="kpi-value">{{ myCourses.length }}</span>
+              <span class="kpi-value">{{ myPrograms.length }}</span>
               <span class="kpi-label">등록 프로그램</span>
             </div>
             <div class="kpi-tile">
               <span class="kpi-ic kpi-ic-green">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg>
               </span>
-              <span class="kpi-value">{{ activeCourseCount }}</span>
+              <span class="kpi-value">{{ activeProgramCount }}</span>
               <span class="kpi-label">진행 중</span>
             </div>
             <div class="kpi-tile">
               <span class="kpi-ic kpi-ic-amber">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 20v-2a4 4 0 0 0-3-3.87M16 3.13A4 4 0 0 1 16 11"/></svg>
               </span>
-              <span class="kpi-value">{{ totalEnrollmentCount }}</span>
+              <span class="kpi-value">{{ totalParticipationCount }}</span>
               <span class="kpi-label">총 참여 소상공인</span>
             </div>
           </div>
@@ -223,21 +223,21 @@
               </div>
             </div>
 
-            <div v-if="!instructorLoading && myCourses.length" class="filter-row">
+            <div v-if="!officerLoading && myPrograms.length" class="filter-row">
               <button
-                v-for="opt in courseFilterOptions"
+                v-for="opt in programFilterOptions"
                 :key="opt.value"
                 type="button"
                 class="filter-chip"
-                :class="{ 'filter-chip-active': courseFilter === opt.value }"
-                @click="courseFilter = opt.value"
+                :class="{ 'filter-chip-active': programFilter === opt.value }"
+                @click="programFilter = opt.value"
               >
                 {{ opt.label }}
-                <span class="filter-count">{{ courseCountByFilter(opt.value) }}</span>
+                <span class="filter-count">{{ programCountByFilter(opt.value) }}</span>
               </button>
             </div>
 
-            <div v-if="instructorLoading" class="recommend-grid">
+            <div v-if="officerLoading" class="recommend-grid">
               <div v-for="i in 3" :key="i" class="skeleton-card">
                 <div class="skeleton-thumb"></div>
                 <div class="skeleton-body">
@@ -247,45 +247,45 @@
               </div>
             </div>
 
-            <div v-else-if="filteredCourses.length" class="instructor-course-list fade-in">
+            <div v-else-if="filteredPrograms.length" class="officer-program-list fade-in">
               <div
-                v-for="course in filteredCourses"
-                :key="course.id"
-                class="instructor-course-card"
+                v-for="program in filteredPrograms"
+                :key="program.id"
+                class="officer-program-card"
               >
-                <div class="course-card-top">
+                <div class="program-card-top">
                   <div>
-                    <h4 class="course-title">{{ course.title }}</h4>
-                    <p class="course-desc">{{ course.description || '설명이 없습니다.' }}</p>
+                    <h4 class="program-title">{{ program.title }}</h4>
+                    <p class="program-desc">{{ program.description || '설명이 없습니다.' }}</p>
                   </div>
                   <span
                     class="status-badge"
-                    :class="course.status === 'ACTIVE' ? 'status-active' : 'status-inactive'"
+                    :class="program.status === 'ACTIVE' ? 'status-active' : 'status-inactive'"
                   >
-                    {{ course.status === 'ACTIVE' ? '모집 중' : '모집 마감' }}
+                    {{ program.status === 'ACTIVE' ? '모집 중' : '모집 마감' }}
                   </span>
                 </div>
 
-                <div class="course-meta-grid">
+                <div class="program-meta-grid">
                   <div class="meta-box">
                     <div class="meta-label">배송유형</div>
                     <div class="meta-value meta-value-type">
-                      <CategoryIcon :category="course.category" class="type-icon" />
-                      {{ courseStore.categoryMeta(course.category).label }}
+                      <CategoryIcon :category="program.category" class="type-icon" />
+                      {{ programStore.categoryMeta(program.category).label }}
                     </div>
                   </div>
                   <div class="meta-box">
                     <div class="meta-label">분담금 (실부담)</div>
-                    <div class="meta-value">{{ formatPrice(netBurden(course.price)) }}</div>
-                    <div class="meta-sub">기준액 {{ formatPrice(course.price) }} · 지원금 {{ subsidyPercent }}%</div>
+                    <div class="meta-value">{{ formatPrice(netBurden(program.price)) }}</div>
+                    <div class="meta-sub">기준액 {{ formatPrice(program.price) }} · 지원금 {{ subsidyPercent }}%</div>
                   </div>
                   <div class="meta-box">
                     <div class="meta-label">참여 소상공인 수</div>
-                    <div class="meta-value">{{ courseEnrollmentCount(course) }}명</div>
+                    <div class="meta-value">{{ programParticipationCount(program) }}명</div>
                   </div>
                   <div class="meta-box">
                     <div class="meta-label">프로그램 ID</div>
-                    <div class="meta-value">#{{ course.id }}</div>
+                    <div class="meta-value">#{{ program.id }}</div>
                   </div>
                 </div>
 
@@ -293,37 +293,37 @@
                 <div class="participation">
                   <div class="participation-head">
                     <span class="participation-label">참여율</span>
-                    <span class="participation-value">{{ courseEnrollmentCount(course) }}명</span>
+                    <span class="participation-value">{{ programParticipationCount(program) }}명</span>
                   </div>
                   <div class="participation-track">
                     <div
                       class="participation-fill"
-                      :style="{ width: participationWidth(course) + '%' }"
+                      :style="{ width: participationWidth(program) + '%' }"
                     ></div>
                   </div>
                   <span class="participation-hint">
-                    {{ maxEnrollmentCount > 0
-                      ? `최다 참여 프로그램 대비 ${participationWidth(course)}%`
+                    {{ maxParticipationCount > 0
+                      ? `최다 참여 프로그램 대비 ${participationWidth(program)}%`
                       : '아직 참여 신청이 없습니다.' }}
                   </span>
                 </div>
 
-                <div class="course-card-actions">
-                  <router-link :to="`/courses/${course.id}`" class="btn btn-primary btn-sm">
+                <div class="program-card-actions">
+                  <router-link :to="`/programs/${program.id}`" class="btn btn-primary btn-sm">
                     프로그램 보기
                   </router-link>
                 </div>
               </div>
             </div>
 
-            <p v-else-if="instructorError" class="empty-text">{{ instructorError }}</p>
-            <p v-else-if="myCourses.length" class="empty-text">해당 상태의 프로그램이 없습니다.</p>
+            <p v-else-if="officerError" class="empty-text">{{ officerError }}</p>
+            <p v-else-if="myPrograms.length" class="empty-text">해당 상태의 프로그램이 없습니다.</p>
 
             <div v-else class="widget-empty">
               <p class="empty-title">아직 등록한 프로그램이 없습니다.</p>
               <p class="empty-desc">새 공동물류 프로그램을 등록해 관내 소상공인의 참여를 받아보세요.</p>
               <div class="empty-actions">
-                <router-link to="/courses/new" class="btn btn-primary">첫 프로그램 등록하기</router-link>
+                <router-link to="/programs/new" class="btn btn-primary">첫 프로그램 등록하기</router-link>
               </div>
             </div>
           </section>
@@ -337,47 +337,47 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
-import CourseCard from '@/components/CourseCard.vue'
+import ProgramCard from '@/components/ProgramCard.vue'
 import CategoryIcon from '@/components/CategoryIcon.vue'
 import { useAuthStore } from '@/store/auth.js'
-import { enrollmentApi } from '@/api/enrollment.js'
-import { courseApi } from '@/api/course.js'
-import { useCourseStore, netBurden, SUBSIDY_RATE } from '@/store/course.js'
+import { participationApi } from '@/api/participation.js'
+import { programApi } from '@/api/program.js'
+import { useProgramStore, netBurden, SUBSIDY_RATE } from '@/store/program.js'
 
 const auth = useAuthStore()
-const courseStore = useCourseStore()
+const programStore = useProgramStore()
 
-const isInstructor = computed(() => auth.user?.role === 'INSTRUCTOR')
+const isOfficer = computed(() => auth.user?.role === 'GOV_OFFICER')
 const subsidyPercent = Math.round(SUBSIDY_RATE * 100)
 
-/* ── 소상공인: 참여 현황 (GET /api/enrollments/my) ── */
-const myEnrollments = ref([])
-const enrollmentLoading = ref(true)
-const enrollmentIsMock = ref(false)
+/* ── 소상공인: 참여 현황 (GET /api/participations/my) ── */
+const myParticipations = ref([])
+const participationLoading = ref(true)
+const participationIsMock = ref(false)
 
-const activeEnrollments = computed(() =>
-  myEnrollments.value.filter((e) => e.status === 'ACTIVE')
+const activeParticipations = computed(() =>
+  myParticipations.value.filter((e) => e.status === 'ACTIVE')
 )
-// 백엔드 Enrollment 상태는 PENDING / ACTIVE 두 가지뿐 → ACTIVE 가 아니면 정산 대기로 본다.
-const pendingEnrollments = computed(() =>
-  myEnrollments.value.filter((e) => e.status !== 'ACTIVE')
+// 백엔드 Participation 상태는 PENDING / ACTIVE 두 가지뿐 → ACTIVE 가 아니면 정산 대기로 본다.
+const pendingParticipations = computed(() =>
+  myParticipations.value.filter((e) => e.status !== 'ACTIVE')
 )
-const sortedEnrollments = computed(() =>
-  [...myEnrollments.value].sort((a, b) => Number(b.id ?? 0) - Number(a.id ?? 0))
+const sortedParticipations = computed(() =>
+  [...myParticipations.value].sort((a, b) => Number(b.id ?? 0) - Number(a.id ?? 0))
 )
 // 분담금은 화면 전체에서 지자체 지원금 30% 반영 후 실부담(netBurden) 기준으로 표시·합산한다.
 const totalContribution = computed(() =>
-  myEnrollments.value.reduce((sum, e) => sum + netBurden(e.course?.price), 0)
+  myParticipations.value.reduce((sum, e) => sum + netBurden(e.program?.price), 0)
 )
 
-// item.course.category 는 course-service 가 준 원본 enum. store 가 라벨/색상/아이콘으로 해석.
-function enrollmentMeta(item) {
-  return courseStore.categoryMeta(item?.course?.category)
+// item.program.category 는 program-service 가 준 원본 enum. store 가 라벨/색상/아이콘으로 해석.
+function participationMeta(item) {
+  return programStore.categoryMeta(item?.program?.category)
 }
 
 /* ── 소상공인: 정산 상태 폴링 ──
- * PENDING → ACTIVE 전환은 payment.completed Kafka 이벤트로 비동기 처리되고 프론트로 푸시되지 않는다.
- * 백엔드 변경 없이, 대기 중인 신청이 있으면 GET /api/enrollments/my 를 잠시 폴링해 상태를 갱신한다. */
+ * PENDING → ACTIVE 전환은 settlement.completed Kafka 이벤트로 비동기 처리되고 프론트로 푸시되지 않는다.
+ * 백엔드 변경 없이, 대기 중인 신청이 있으면 GET /api/participations/my 를 잠시 폴링해 상태를 갱신한다. */
 const POLL_INTERVAL = 3000
 const POLL_MAX_TRIES = 10
 let pollTimer = null
@@ -392,24 +392,24 @@ function stopPolling() {
 }
 
 function startPollingIfNeeded() {
-  if (pollTimer || !pendingEnrollments.value.length) return
+  if (pollTimer || !pendingParticipations.value.length) return
 
   pollTimerActive.value = true
   let tries = 0
   pollTimer = setInterval(async () => {
     tries += 1
     try {
-      const res = await enrollmentApi.getMyEnrollments()
+      const res = await participationApi.getMyParticipations()
       const data = res.data
       if (Array.isArray(data?.data)) {
-        myEnrollments.value = data.data
+        myParticipations.value = data.data
       } else if (Array.isArray(data)) {
-        myEnrollments.value = data
+        myParticipations.value = data
       }
     } catch (error) {
-      console.error('[MyPage] enrollment polling failed:', error)
+      console.error('[MyPage] participation polling failed:', error)
     }
-    if (!pendingEnrollments.value.length || tries >= POLL_MAX_TRIES) {
+    if (!pendingParticipations.value.length || tries >= POLL_MAX_TRIES) {
       stopPolling()
     }
   }, POLL_INTERVAL)
@@ -422,54 +422,54 @@ const recommendError = ref('')
 const recommendMessage = ref('')
 
 /* ── 지자체 담당자: 등록 프로그램 ── */
-const myCourses = ref([])
-const instructorLoading = ref(true)
-const instructorError = ref('')
-const courseFilter = ref('ALL')
+const myPrograms = ref([])
+const officerLoading = ref(true)
+const officerError = ref('')
+const programFilter = ref('ALL')
 
-const courseFilterOptions = [
+const programFilterOptions = [
   { value: 'ALL', label: '전체' },
   { value: 'ACTIVE', label: '모집 중' },
   { value: 'INACTIVE', label: '모집 마감' },
 ]
 
-function courseEnrollmentCount(course) {
-  const n = Number(course.enrollment_count ?? course.enrollmentCount ?? 0)
+function programParticipationCount(program) {
+  const n = Number(program.participation_count ?? program.participationCount ?? 0)
   return Number.isNaN(n) ? 0 : n
 }
 
-const totalEnrollmentCount = computed(() =>
-  myCourses.value.reduce((sum, course) => sum + courseEnrollmentCount(course), 0)
+const totalParticipationCount = computed(() =>
+  myPrograms.value.reduce((sum, program) => sum + programParticipationCount(program), 0)
 )
 
-// course-service의 Course.status가 ACTIVE인 프로그램을 "진행 중"으로 집계
-const activeCourseCount = computed(() =>
-  myCourses.value.filter((course) => course.status === 'ACTIVE').length
+// program-service의 Program.status가 ACTIVE인 프로그램을 "진행 중"으로 집계
+const activeProgramCount = computed(() =>
+  myPrograms.value.filter((program) => program.status === 'ACTIVE').length
 )
 
-const maxEnrollmentCount = computed(() =>
-  myCourses.value.reduce((max, course) => Math.max(max, courseEnrollmentCount(course)), 0)
+const maxParticipationCount = computed(() =>
+  myPrograms.value.reduce((max, program) => Math.max(max, programParticipationCount(program)), 0)
 )
 
-function courseCountByFilter(value) {
-  if (value === 'ACTIVE') return activeCourseCount.value
-  if (value === 'INACTIVE') return myCourses.value.length - activeCourseCount.value
-  return myCourses.value.length
+function programCountByFilter(value) {
+  if (value === 'ACTIVE') return activeProgramCount.value
+  if (value === 'INACTIVE') return myPrograms.value.length - activeProgramCount.value
+  return myPrograms.value.length
 }
 
-const filteredCourses = computed(() => {
-  if (courseFilter.value === 'ACTIVE') {
-    return myCourses.value.filter((c) => c.status === 'ACTIVE')
+const filteredPrograms = computed(() => {
+  if (programFilter.value === 'ACTIVE') {
+    return myPrograms.value.filter((c) => c.status === 'ACTIVE')
   }
-  if (courseFilter.value === 'INACTIVE') {
-    return myCourses.value.filter((c) => c.status !== 'ACTIVE')
+  if (programFilter.value === 'INACTIVE') {
+    return myPrograms.value.filter((c) => c.status !== 'ACTIVE')
   }
-  return myCourses.value
+  return myPrograms.value
 })
 
-function participationWidth(course) {
-  if (maxEnrollmentCount.value <= 0) return 0
-  return Math.round((courseEnrollmentCount(course) / maxEnrollmentCount.value) * 100)
+function participationWidth(program) {
+  if (maxParticipationCount.value <= 0) return 0
+  return Math.round((programParticipationCount(program) / maxParticipationCount.value) * 100)
 }
 
 function formatPrice(price) {
@@ -479,50 +479,48 @@ function formatPrice(price) {
 }
 
 /**
- * course 객체에서 강사 식별자 추출
+ * program 객체에서 지자체 담당자 식별자 추출
  */
-function getCourseInstructorId(course) {
+function getProgramOfficerId(program) {
   return (
-    course.instructorId ??
-    course.instructor_id ??
-    course.instructor ??
-    course.teacherId ??
-    course.teacher_id ??
+    program.officerId ??
+    program.officer_id ??
+    program.officer ??
     null
   )
 }
 
 function buildRecommendMessage(basedOnCategory) {
   if (basedOnCategory) {
-    return `'${courseStore.categoryMeta(basedOnCategory).label}' 참여 이력을 기반으로 추천한 공동물류 프로그램입니다.`
+    return `'${programStore.categoryMeta(basedOnCategory).label}' 참여 이력을 기반으로 추천한 공동물류 프로그램입니다.`
   }
   return '참여 소상공인에게 인기 있는 공동물류 프로그램입니다.'
 }
 
-async function loadStudentEnrollments() {
+async function loadMerchantParticipations() {
   try {
-    const res = await enrollmentApi.getMyEnrollments()
-    console.log('[MyPage] my enrollments response:', res.data)
+    const res = await participationApi.getMyParticipations()
+    console.log('[MyPage] my participations response:', res.data)
 
     const data = res.data
     if (Array.isArray(data?.data)) {
-      myEnrollments.value = data.data
+      myParticipations.value = data.data
     } else if (Array.isArray(data)) {
-      myEnrollments.value = data
+      myParticipations.value = data
     } else {
-      console.warn('[MyPage] unexpected enrollments response shape:', data)
-      myEnrollments.value = []
+      console.warn('[MyPage] unexpected participations response shape:', data)
+      myParticipations.value = []
     }
-    enrollmentIsMock.value = data?.mock === true
+    participationIsMock.value = data?.mock === true
   } catch (error) {
-    console.error('[MyPage] failed to load enrollments:', error)
-    myEnrollments.value = []
+    console.error('[MyPage] failed to load participations:', error)
+    myParticipations.value = []
   } finally {
-    enrollmentLoading.value = false
+    participationLoading.value = false
   }
 }
 
-async function loadStudentRecommendations() {
+async function loadMerchantRecommendations() {
   try {
     if (!auth.user) {
       console.warn('[MyPage] auth.user is missing')
@@ -536,13 +534,13 @@ async function loadStudentRecommendations() {
       return
     }
 
-    const res = await enrollmentApi.getRecommendations(auth.user.id)
+    const res = await participationApi.getRecommendations(auth.user.id)
     console.log('[MyPage] recommendation response:', res.data)
 
     const payload = res.data
 
-    if (Array.isArray(payload?.recommendedCourses)) {
-      recommendations.value = payload.recommendedCourses
+    if (Array.isArray(payload?.recommendedPrograms)) {
+      recommendations.value = payload.recommendedPrograms
     } else if (Array.isArray(payload?.data)) {
       recommendations.value = payload.data
     } else if (Array.isArray(payload)) {
@@ -552,7 +550,7 @@ async function loadStudentRecommendations() {
       recommendations.value = []
     }
 
-    // recommend-service가 내려주는 message에는 "강의" 문구가 섞여 있어(수정 불가 대상),
+    // recommend-service가 내려주는 message에는 "프로그램" 문구가 섞여 있어(수정 불가 대상),
     // 프론트에서 공동물류 도메인 문구로 다시 만든다.
     recommendMessage.value = buildRecommendMessage(payload?.basedOnCategory)
   } catch (error) {
@@ -563,57 +561,57 @@ async function loadStudentRecommendations() {
   }
 }
 
-async function loadInstructorCourses() {
+async function loadOfficerPrograms() {
   try {
     if (!auth.user) {
-      console.warn('[MyPage] instructor auth.user is missing')
-      instructorError.value = '프로그램 정보를 불러오지 못했습니다.'
+      console.warn('[MyPage] officer auth.user is missing')
+      officerError.value = '프로그램 정보를 불러오지 못했습니다.'
       return
     }
 
     if (!auth.user.id) {
-      console.warn('[MyPage] instructor auth.user.id is missing:', auth.user)
-      instructorError.value = '프로그램 정보를 불러오지 못했습니다.'
+      console.warn('[MyPage] officer auth.user.id is missing:', auth.user)
+      officerError.value = '프로그램 정보를 불러오지 못했습니다.'
       return
     }
 
-    const res = await courseApi.getCourses()
-    console.log('[MyPage] course list response:', res.data)
+    const res = await programApi.getPrograms()
+    console.log('[MyPage] program list response:', res.data)
 
-    let courses = []
+    let programs = []
 
     if (Array.isArray(res.data?.data)) {
-      courses = res.data.data
+      programs = res.data.data
     } else if (Array.isArray(res.data)) {
-      courses = res.data
+      programs = res.data
     } else {
-      console.warn('[MyPage] unexpected course response shape:', res.data)
+      console.warn('[MyPage] unexpected program response shape:', res.data)
     }
 
-    const instructorId = Number(auth.user.id)
+    const officerId = Number(auth.user.id)
 
-    myCourses.value = courses.filter(course => {
-      const courseInstructorId = Number(getCourseInstructorId(course))
-      return !Number.isNaN(courseInstructorId) && courseInstructorId === instructorId
+    myPrograms.value = programs.filter(program => {
+      const programOfficerId = Number(getProgramOfficerId(program))
+      return !Number.isNaN(programOfficerId) && programOfficerId === officerId
     })
 
-    console.log('[MyPage] filtered myCourses =', myCourses.value)
+    console.log('[MyPage] filtered myPrograms =', myPrograms.value)
   } catch (error) {
-    console.error('[MyPage] failed to load instructor courses:', error)
-    instructorError.value = '현재 프로그램 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
+    console.error('[MyPage] failed to load officer programs:', error)
+    officerError.value = '현재 프로그램 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'
   } finally {
-    instructorLoading.value = false
+    officerLoading.value = false
   }
 }
 
 onMounted(async () => {
-  if (isInstructor.value) {
+  if (isOfficer.value) {
     recommendLoading.value = false
-    enrollmentLoading.value = false
-    await loadInstructorCourses()
+    participationLoading.value = false
+    await loadOfficerPrograms()
   } else {
-    instructorLoading.value = false
-    await Promise.all([loadStudentEnrollments(), loadStudentRecommendations()])
+    officerLoading.value = false
+    await Promise.all([loadMerchantParticipations(), loadMerchantRecommendations()])
     startPollingIfNeeded()
   }
 })
@@ -867,7 +865,7 @@ onUnmounted(stopPolling)
   flex-direction: column;
   gap: 8px;
 }
-.recommend-item > .course-card { flex: 1; }
+.recommend-item > .program-card { flex: 1; }
 .recommend-apply {
   width: 100%;
   justify-content: center;
@@ -913,35 +911,35 @@ onUnmounted(stopPolling)
 }
 
 /* ── 지자체 담당자: 등록 프로그램 카드 ── */
-.instructor-course-list {
+.officer-program-list {
   display: grid;
   gap: 16px;
 }
-.instructor-course-card {
+.officer-program-card {
   background: var(--color-bg-secondary);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   padding: 20px;
 }
-.course-card-top {
+.program-card-top {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
 }
-.course-title {
+.program-title {
   font-size: 17px;
   font-weight: 700;
   margin-bottom: 6px;
 }
-.course-desc {
+.program-desc {
   font-size: 13px;
   color: var(--color-text-secondary);
   line-height: 1.5;
   white-space: pre-line;
 }
-.course-meta-grid {
+.program-meta-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
@@ -1017,11 +1015,11 @@ onUnmounted(stopPolling)
   font-size: 11px;
   color: var(--color-text-muted);
 }
-.course-card-actions {
+.program-card-actions {
   display: flex;
   justify-content: flex-end;
 }
-.course-card-actions .btn {
+.program-card-actions .btn {
   text-decoration: none;
 }
 
@@ -1035,7 +1033,7 @@ onUnmounted(stopPolling)
     grid-template-columns: 1fr 1fr;
   }
   .recommend-grid,
-  .course-meta-grid {
+  .program-meta-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -1053,7 +1051,7 @@ onUnmounted(stopPolling)
   .profile-role {
     margin-left: 0;
   }
-  .course-card-top {
+  .program-card-top {
     flex-direction: column;
   }
   .recent-card {

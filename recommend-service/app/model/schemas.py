@@ -5,38 +5,38 @@ from decimal import Decimal
 from datetime import datetime
 
 
-class CourseCategory(str, Enum):
-    BACKEND = "BACKEND"
-    FRONTEND = "FRONTEND"
-    DEVOPS = "DEVOPS"
-    DATA_SCIENCE = "DATA_SCIENCE"
-    MOBILE = "MOBILE"
-    SECURITY = "SECURITY"
-    DATABASE = "DATABASE"
+class ProgramCategory(str, Enum):
+    SAME_DAY = "SAME_DAY"
+    REGULAR_BUNDLE = "REGULAR_BUNDLE"
+    COLD_CHAIN = "COLD_CHAIN"
+    TRADITIONAL_MARKET = "TRADITIONAL_MARKET"
+    LOCAL_COMMERCE = "LOCAL_COMMERCE"
+    SAFE_DELIVERY = "SAFE_DELIVERY"
+    SHARED_STORAGE = "SHARED_STORAGE"
     OTHER = "OTHER"
 
 
-class CourseResponse(BaseModel):
+class ProgramResponse(BaseModel):
     id: int
     title: str
     description: Optional[str] = None
-    category: CourseCategory
+    category: ProgramCategory
     price: Decimal
-    instructorId: int
-    enrollmentCount: int
+    officerId: int
+    participationCount: int
     status: str
     createdAt: Optional[datetime] = None
 
 
-class EnrollmentHistoryResponse(BaseModel):
+class ParticipationHistoryResponse(BaseModel):
     userId: int
-    activeCourseIds: List[int]
+    activeProgramIds: List[int]
 
 
 class RecommendResponse(BaseModel):
     userId: int
-    recommendedCourses: List[CourseResponse]
-    basedOnCategory: Optional[CourseCategory] = None
+    recommendedPrograms: List[ProgramResponse]
+    basedOnCategory: Optional[ProgramCategory] = None
     message: str
 
 

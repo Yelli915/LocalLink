@@ -1,6 +1,6 @@
-# The following practice code is intended for educational purposes only. For contact :  audit@korea.ac.kr, Sungryel Lim Ph.D
+# 학습·시연 목적의 프로젝트입니다. 상용 서비스로 쓰려면 배포 목적에 맞는 보완(보안·운영·확장성)이 필요합니다.
 
-# This practice code is not a completed commercial version but has been developed for educational purposes; supplementation is required depending on the deployment objective for use as a commercial service.
+name: locallink
 
 services:
 
@@ -8,14 +8,14 @@ services:
 
   mariadb:
     image: mariadb:11.2
-    container_name: lecturedb
+    container_name: locallinkdb
     environment:
-      MYSQL_ROOT_PASSWORD: SqlDba-1
-      MYSQL_DATABASE: lecture_db
-      MYSQL_USER: manager
-      MYSQL_PASSWORD: SqlDba-1
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?.env 에 DB_ROOT_PASSWORD 를 설정하세요}
+      MYSQL_DATABASE: locallink_db
+      MYSQL_USER: ${DB_USER:-manager}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?.env 에 DB_PASSWORD 를 설정하세요}
     ports:
-      - "3379:3306"
+      - "127.0.0.1:3379:3306"   # 로컬 점검용 (외부 네트워크 비노출)
     volumes:
       - mariadb_data:/var/lib/mysql
       - ./init-db:/docker-entrypoint-initdb.d
@@ -26,11 +26,11 @@ services:
       retries: 5
       start_period: 30s
     networks:
-      - lecture-net
+      - locallink-net
 
   kafka:
     image: confluentinc/cp-kafka:7.7.0
-    container_name: lecture-kafka
+    container_name: locallink-kafka
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -55,7 +55,7 @@ services:
       retries: 5
       start_period: 60s
     networks:
-      - lecture-net
+      - locallink-net
 
 
   # Service Discovery
@@ -64,7 +64,7 @@ services:
     build:
       context: ./eureka-server
       dockerfile: Dockerfile
-    container_name: lecture-eureka
+    container_name: locallink-eureka
     ports:
       - "8761:8761"
     environment:
@@ -76,21 +76,21 @@ services:
       retries: 10
       start_period: 60s
     networks:
-      - lecture-net
+      - locallink-net
   
 
   # Auth Server
 
   auth-server:
     image: msa-lecture/auth-server:1.0
-    container_name: lecture-auth
+    container_name: locallink-auth
     ports:
       - "9000:9000"
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:mariadb://lecturedb:3306/lecture_db
-      - SPRING_DATASOURCE_USERNAME=manager
-      - SPRING_DATASOURCE_PASSWORD=SqlDba-1
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://locallinkdb:3306/locallink_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-manager}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?.env 에 DB_PASSWORD 를 설정하세요}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
     depends_on:
       mariadb:
@@ -104,14 +104,14 @@ services:
       retries: 10
       start_period: 120s
     networks:
-      - lecture-net
+      - locallink-net
 
 
   # API Gateway
 
   api-gateway:
     image: msa-lecture/api-gateway:1.0
-    container_name: lecture-gateway
+    container_name: locallink-gateway
     ports:
       - "8080:8080"
     environment:
@@ -125,7 +125,7 @@ services:
       auth-server:
         condition: service_healthy
     networks:
-      - lecture-net
+      - locallink-net
 
 
   # Microservices
@@ -134,14 +134,15 @@ services:
     build:
       context: ./user-service
       dockerfile: Dockerfile
-    container_name: lecture-user
-    ports:
-      - "8081:8081"
+    container_name: locallink-user
+    expose:
+      - "8081"   # 게이트웨이/내부 네트워크 전용 (호스트 비노출)
     environment:
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?.env 에 INTERNAL_API_TOKEN 을 설정하세요}
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:mariadb://lecturedb:3306/lecture_db
-      - SPRING_DATASOURCE_USERNAME=manager
-      - SPRING_DATASOURCE_PASSWORD=SqlDba-1
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://locallinkdb:3306/locallink_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-manager}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?.env 에 DB_PASSWORD 를 설정하세요}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://auth-server:9000/oauth2/jwks
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://auth-server:9000
@@ -153,20 +154,22 @@ services:
       auth-server:
         condition: service_healthy
     networks:
-      - lecture-net
+      - locallink-net
 
-  course-service:
+  program-service:
     build:
-      context: ./course-service
+      context: ./program-service
       dockerfile: Dockerfile
-    container_name: lecture-course
+    container_name: locallink-program
     ports:
-      - "8082:8082"
+      # 개발용 vite 프록시(/program-service)가 쓰는 공개 읽기 경로. 로컬 루프백에만 바인딩.
+      - "127.0.0.1:8082:8082"
     environment:
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?.env 에 INTERNAL_API_TOKEN 을 설정하세요}
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:mariadb://lecturedb:3306/lecture_db
-      - SPRING_DATASOURCE_USERNAME=manager
-      - SPRING_DATASOURCE_PASSWORD=SqlDba-1
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://locallinkdb:3306/locallink_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-manager}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?.env 에 DB_PASSWORD 를 설정하세요}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://auth-server:9000/oauth2/jwks
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://auth-server:9000
@@ -178,20 +181,21 @@ services:
       auth-server:
         condition: service_healthy
     networks:
-      - lecture-net
+      - locallink-net
 
-  enrollment-service:
+  participation-service:
     build:
-      context: ./enrollment-service
+      context: ./participation-service
       dockerfile: Dockerfile
-    container_name: lecture-enrollment
-    ports:
-      - "8083:8083"
+    container_name: locallink-participation
+    expose:
+      - "8083"   # 게이트웨이/내부 네트워크 전용 (호스트 비노출)
     environment:
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?.env 에 INTERNAL_API_TOKEN 을 설정하세요}
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:mariadb://lecturedb:3306/lecture_db
-      - SPRING_DATASOURCE_USERNAME=manager
-      - SPRING_DATASOURCE_PASSWORD=SqlDba-1
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://locallinkdb:3306/locallink_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-manager}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?.env 에 DB_PASSWORD 를 설정하세요}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://auth-server:9000/oauth2/jwks
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://auth-server:9000
@@ -206,20 +210,21 @@ services:
       kafka:
         condition: service_healthy
     networks:
-      - lecture-net
+      - locallink-net
 
-  payment-service:
+  settlement-service:
     build:
-      context: ./payment-service
+      context: ./settlement-service
       dockerfile: Dockerfile
-    container_name: lecture-payment
-    ports:
-      - "8084:8084"
+    container_name: locallink-settlement
+    expose:
+      - "8084"   # 게이트웨이/내부 네트워크 전용 (호스트 비노출)
     environment:
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?.env 에 INTERNAL_API_TOKEN 을 설정하세요}
       - SPRING_PROFILES_ACTIVE=docker
-      - SPRING_DATASOURCE_URL=jdbc:mariadb://lecturedb:3306/lecture_db
-      - SPRING_DATASOURCE_USERNAME=manager
-      - SPRING_DATASOURCE_PASSWORD=SqlDba-1
+      - SPRING_DATASOURCE_URL=jdbc:mariadb://locallinkdb:3306/locallink_db
+      - SPRING_DATASOURCE_USERNAME=${DB_USER:-manager}
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:?.env 에 DB_PASSWORD 를 설정하세요}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-server:8761/eureka/
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://auth-server:9000/oauth2/jwks
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://auth-server:9000
@@ -234,22 +239,23 @@ services:
       kafka:
         condition: service_healthy
     networks:
-      - lecture-net
+      - locallink-net
 
   recommend-service:
     build:
       context: ./recommend-service
       dockerfile: Dockerfile
-    container_name: lecture-recommend
-    ports:
-      - "8085:8085"
+    container_name: locallink-recommend
+    expose:
+      - "8085"   # 게이트웨이/내부 네트워크 전용 (호스트 비노출)
     environment:
+      - INTERNAL_API_TOKEN=${INTERNAL_API_TOKEN:?.env 에 INTERNAL_API_TOKEN 을 설정하세요}
       - EUREKA_SERVER_URL=http://eureka-server:8761/eureka
       - EUREKA_INSTANCE_HOST=recommend-service
       - JWT_ISSUER_URI=http://localhost:8080
       - JWK_SET_URI=http://auth-server:9000/oauth2/jwks
-      - ENROLLMENT_SERVICE_URL=http://enrollment-service:8083
-      - COURSE_SERVICE_URL=http://course-service:8082
+      - PARTICIPATION_SERVICE_URL=http://participation-service:8083
+      - PROGRAM_SERVICE_URL=http://program-service:8082
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     depends_on:
       eureka-server:
@@ -258,12 +264,12 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
-      enrollment-service:
+      participation-service:
         condition: service_started
-      course-service:
+      program-service:
         condition: service_started
     networks:
-      - lecture-net
+      - locallink-net
 
 
 # Volumes & Networks
@@ -273,5 +279,5 @@ volumes:
   kafka_data:
 
 networks:
-  lecture-net:
+  locallink-net:
     driver: bridge

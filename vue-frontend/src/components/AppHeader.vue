@@ -3,9 +3,9 @@
     <div class="header-inner">
       <!-- 로고 -->
       <router-link to="/" class="logo">
-        <img src="@/assets/images/logo/main_logo.png" alt="물류이음" class="logo-img" />
+        <img src="@/assets/images/logo/main_logo.png" alt="LocalLink" class="logo-img" />
         <span class="logo-box">
-          <span class="logo-text">물류이음</span>
+          <span class="logo-text">LocalLink</span>
           <span class="logo-tagline">지역 공동물류 플랫폼</span>
         </span>
       </router-link>
@@ -14,7 +14,7 @@
       <div class="header-right">
         <nav class="header-nav" aria-label="주 메뉴">
           <router-link
-            to="/courses"
+            to="/programs"
             class="header-nav-link"
             :class="{ 'is-active': isCatalogActive }"
           >
@@ -50,10 +50,10 @@ import { useAuthStore } from '@/store/auth.js'
 const auth = useAuthStore()
 const route = useRoute()
 
-// 카탈로그 목록(/courses)과 프로그램 상세(/courses/123)에서만 활성.
-// 프로그램 등록(/courses/new)에서는 활성 표시하지 않는다.
+// 카탈로그 목록(/programs)과 프로그램 상세(/programs/123)에서만 활성.
+// 프로그램 등록(/programs/new)에서는 활성 표시하지 않는다.
 const isCatalogActive = computed(
-  () => route.path === '/courses' || /^\/courses\/\d+/.test(route.path)
+  () => route.path === '/programs' || /^\/programs\/\d+/.test(route.path)
 )
 
 function handleLogout() {

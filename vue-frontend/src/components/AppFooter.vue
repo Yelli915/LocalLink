@@ -3,26 +3,25 @@
     <div class="footer-inner">
       <div class="footer-brand">
         <div class="footer-logo">
-          <img src="@/assets/images/logo/main_logo.png" alt="물류이음" />
-          <span>물류이음</span>
+          <img src="@/assets/images/logo/main_logo.png" alt="LocalLink" />
+          <span>LocalLink</span>
         </div>
         <p class="footer-tagline">지역이 함께 나르는 공동물류 플랫폼</p>
       </div>
 
       <div class="footer-col">
         <h4>서비스</h4>
-        <router-link to="/courses">공동물류 프로그램</router-link>
+        <router-link to="/programs">공동물류 프로그램</router-link>
         <router-link to="/login">소상공인 참여 신청</router-link>
         <router-link to="/login">지자체 담당자 안내</router-link>
       </div>
 
       <div class="footer-col">
         <h4>운영</h4>
-        <p>고려대학교 마이크로서비스 아키텍처 강의용 데모</p>
-        <a href="mailto:audit@korea.ac.kr">문의 · audit@korea.ac.kr</a>
+        <p>LocalLink · B2G2B 지역 공동 물류 플랫폼</p>
       </div>
     </div>
-    <p class="footer-copy">© 2026 물류이음 · 교육용 데모 서비스. All rights reserved.</p>
+    <p class="footer-copy">© 2026 LocalLink · 학습·시연용 데모 서비스. All rights reserved.</p>
   </footer>
 </template>
 

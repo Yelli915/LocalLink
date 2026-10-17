@@ -3,7 +3,7 @@
     <!-- '공동물류 프로그램'(전체 카탈로그)은 상단바(AppHeader)로 이동함 -->
 
     <!-- 소상공인: 내 활동 -->
-    <div v-if="isAuthenticated && !isInstructor" class="sidebar-section">
+    <div v-if="isAuthenticated && !isOfficer" class="sidebar-section">
       <div class="sidebar-label">내 활동</div>
 
       <router-link
@@ -15,9 +15,9 @@
       </router-link>
 
       <router-link
-        to="/mypage#my-enrollments"
+        to="/mypage#my-participations"
         class="sidebar-item sidebar-subitem"
-        :class="{ active: onMypageHash('#my-enrollments') }"
+        :class="{ active: onMypageHash('#my-participations') }"
       >
         <span class="si-icon"><NavIcon name="truck" /></span> 내 참여 현황
       </router-link>
@@ -32,13 +32,13 @@
     </div>
 
     <!-- 지자체 담당자: 운영 -->
-    <div v-else-if="isAuthenticated && isInstructor" class="sidebar-section">
+    <div v-else-if="isAuthenticated && isOfficer" class="sidebar-section">
       <div class="sidebar-label">운영</div>
 
       <router-link
-        to="/courses/new"
+        to="/programs/new"
         class="sidebar-item"
-        :class="{ active: route.path === '/courses/new' }"
+        :class="{ active: route.path === '/programs/new' }"
       >
         <span class="si-icon"><NavIcon name="plus-box" /></span> 프로그램 등록
       </router-link>
@@ -83,10 +83,10 @@ const route = useRoute()
 const auth = useAuthStore()
 
 const isAuthenticated = computed(() => auth.isAuthenticated)
-const isInstructor = computed(() => auth.user?.role === 'INSTRUCTOR')
+const isOfficer = computed(() => auth.user?.role === 'GOV_OFFICER')
 
 const onMypage = computed(() => route.path === '/mypage')
-// 마이페이지 대시보드의 섹션 앵커(#my-enrollments / #recommend) 활성 표시
+// 마이페이지 대시보드의 섹션 앵커(#my-participations / #recommend) 활성 표시
 function onMypageHash(hash) {
   return route.path === '/mypage' && route.hash === hash
 }

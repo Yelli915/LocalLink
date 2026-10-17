@@ -1,0 +1,12 @@
+# 줄바꿈 정규화: 저장소에는 LF 로 저장하고, 체크아웃 시 OS 설정을 따른다 (Windows 의 LF→CRLF 경고 제거)
+* text=auto
+
+# 바이너리
+*.tar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.jar binary

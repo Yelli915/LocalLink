@@ -3,8 +3,8 @@
     <!-- 좌측 브랜딩 (데스크톱) -->
     <aside class="login-brand">
       <router-link to="/" class="brand">
-        <img src="@/assets/images/logo/main_logo.png" alt="물류이음" class="brand-logo" />
-        <span class="brand-name">물류이음</span>
+        <img src="@/assets/images/logo/main_logo.png" alt="LocalLink" class="brand-logo" />
+        <span class="brand-name">LocalLink</span>
       </router-link>
 
       <div class="brand-body">
@@ -21,7 +21,7 @@
         </ul>
       </div>
 
-      <p class="brand-foot">© 2026 물류이음</p>
+      <p class="brand-foot">© 2026 LocalLink</p>
 
       <KoreaNetworkArt class="brand-art" aria-hidden="true" />
     </aside>
@@ -33,8 +33,8 @@
 
         <!-- 모바일 로고 -->
         <div class="mobile-brand">
-          <img src="@/assets/images/logo/main_logo.png" alt="물류이음" />
-          <span>물류이음</span>
+          <img src="@/assets/images/logo/main_logo.png" alt="LocalLink" />
+          <span>LocalLink</span>
         </div>
 
         <!-- 탭 -->
@@ -135,7 +135,7 @@
           <!-- 가입 완료 상태 -->
           <div v-if="registered" class="registered-box">
             <p class="registered-title">✅ {{ registeredRoleLabel }} 회원가입이 완료되었습니다</p>
-            <p class="registered-desc">이제 물류이음 계정으로 로그인해 주세요.</p>
+            <p class="registered-desc">이제 LocalLink 계정으로 로그인해 주세요.</p>
             <button class="btn btn-primary btn-cta" @click="switchMode('login')">
               로그인하러 가기 <span class="cta-arrow" aria-hidden="true">→</span>
             </button>
@@ -285,7 +285,7 @@ const auth = useAuthStore()
 const sessionExpired = computed(() => route.query.expired === '1')
 
 /* 로그인 후 돌아갈 목적지.
-   랜딩의 프로그램 카드/‘전체 보기’가 ?redirect=/courses/123 형태로 넘겨준다.
+   랜딩의 프로그램 카드/‘전체 보기’가 ?redirect=/programs/123 형태로 넘겨준다.
    OAuth(전체 페이지 리다이렉트) 흐름에서도 살아남도록 세션에 보관하고,
    CallbackView 가 같은 키를 읽어 이동한다. 오픈 리다이렉트 방지를 위해 same-origin 경로만 허용. */
 function safeInternalPath(value) {
@@ -305,14 +305,14 @@ if (initialRedirect) {
 function consumePostLoginRedirect() {
   const stored = safeInternalPath(sessionStorage.getItem(REDIRECT_KEY))
   sessionStorage.removeItem(REDIRECT_KEY)
-  return stored || '/courses'
+  return stored || '/programs'
 }
 
 const tabs = [
   { key: 'login', label: '로그인' },
   { key: 'register', label: '회원가입' },
 ]
-// 랜딩 히어로의 타깃별 CTA가 ?tab=register&role=INSTRUCTOR 형태로 넘겨준다.
+// 랜딩 히어로의 타깃별 CTA가 ?tab=register&role=GOV_OFFICER 형태로 넘겨준다.
 const mode = ref(route.query.tab === 'register' ? 'register' : 'login')
 
 const loading = ref(false)
@@ -332,7 +332,7 @@ const registerForm = reactive({
   name: '',
   email: '',
   password: '',
-  role: route.query.role === 'INSTRUCTOR' ? 'INSTRUCTOR' : 'STUDENT',
+  role: route.query.role === 'GOV_OFFICER' ? 'GOV_OFFICER' : 'MERCHANT',
 })
 const touched = reactive({ name: false, email: false, password: false })
 
@@ -342,10 +342,10 @@ const brandPoints = [
   { icon: '🧾', label: '정산·분담금 내역 확인' },
 ]
 
-// value는 백엔드 User.role enum 그대로 전송 (STUDENT / INSTRUCTOR)
+// value는 백엔드 User.role enum 그대로 전송 (MERCHANT / GOV_OFFICER)
 const roles = [
-  { value: 'STUDENT', icon: '🏪', name: '소상공인', desc: '공동물류 프로그램에 참여 신청' },
-  { value: 'INSTRUCTOR', icon: '🏢', name: '지자체 담당자', desc: '공동물류 프로그램을 개설·운영' },
+  { value: 'MERCHANT', icon: '🏪', name: '소상공인', desc: '공동물류 프로그램에 참여 신청' },
+  { value: 'GOV_OFFICER', icon: '🏢', name: '지자체 담당자', desc: '공동물류 프로그램을 개설·운영' },
 ]
 
 const registeredRoleLabel = computed(

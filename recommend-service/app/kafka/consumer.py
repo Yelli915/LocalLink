@@ -7,15 +7,15 @@ from app.config.settings import settings
 logger = logging.getLogger(__name__)
 
 
-class EnrollmentCompletedConsumer:
+class ParticipationCompletedConsumer:
     """
-    Kafka Consumer: enrollment.completed 이벤트 수신
-    - Enrollment Service가 수강 활성화 후 발행
-    - 실시간 추천 캐시 갱신 트리거 (실습 수준: 로그 처리)
+    Kafka Consumer: participation.completed 이벤트 수신
+    - Participation Service가 참여 활성화 후 발행
+    - 실시간 추천 캐시 갱신 트리거 (현재는 로그 처리까지만)
     """
 
     def __init__(self):
-        self.topic = settings.kafka_topic_enrollment_completed
+        self.topic = settings.kafka_topic_participation_completed
         self.consumer = None
         self._running = False
 
@@ -57,25 +57,25 @@ class EnrollmentCompletedConsumer:
 
     def _handle_message(self, event: dict):
         """
-        enrollment.completed 이벤트 처리
-        - enrollmentId, userId, courseId 추출
-        - 추천 캐시 갱신 트리거 (실습: 로그로 대체)
+        participation.completed 이벤트 처리
+        - participationId, userId, programId 추출
+        - 추천 캐시 갱신 트리거 (현재는 로그로 대체)
         """
         try:
-            enrollment_id = event.get("enrollmentId")
+            participation_id = event.get("participationId")
             user_id = event.get("userId")
-            course_id = event.get("courseId")
+            program_id = event.get("programId")
 
             logger.info(
-                f"[KafkaConsumer] enrollment.completed 수신 - "
-                f"enrollmentId: {enrollment_id}, userId: {user_id}, courseId: {course_id}"
+                f"[KafkaConsumer] participation.completed 수신 - "
+                f"participationId: {participation_id}, userId: {user_id}, programId: {program_id}"
             )
 
-            # 실습 포인트: 여기서 캐시 갱신 또는 추천 재계산 로직 추가 가능
+            # 확장 포인트: 여기서 캐시 갱신 또는 추천 재계산 로직 추가 가능
             # 예: recommend_cache.invalidate(user_id)
 
         except Exception as e:
             logger.error(f"[KafkaConsumer] 메시지 처리 실패: {e}, event: {event}")
 
 
-enrollment_consumer = EnrollmentCompletedConsumer()
+participation_consumer = ParticipationCompletedConsumer()
