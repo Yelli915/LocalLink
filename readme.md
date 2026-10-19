@@ -11,7 +11,7 @@ Spring Cloud 도메인 서비스 4개 + FastAPI 추천 서비스로 구성한 MS
 
 - **Objective** : 참여 신청 → 정산 → 참여 확정 흐름을 서비스 간 REST + Kafka 이벤트로 처리
 - **Method** : MSA (Eureka, API Gateway, OAuth2/JWT) + 이벤트 기반 상태 변경 (PENDING → ACTIVE)
-- **Tools** : Docker Compose(컨테이너 8개), Kafka, MariaDB
+- **Tools** : Docker Compose(컨테이너 10개), Kafka, MariaDB
 
 ## Features
 
@@ -102,6 +102,32 @@ flowchart TB
 
   L4 ~~~ L5
 ```
+
+---
+
+## Getting Started
+
+```bash
+cp .env.example .env          # DB 비밀번호, INTERNAL_API_TOKEN 변경
+docker compose up -d --build  # auth-server, api-gateway 는 msa-lecture/*:1.0 이미지가 로컬에 있어야 함
+
+cd vue-frontend && npm install && npm run dev   # http://localhost:3000 (→ gateway :8080 프록시)
+```
+
+| 주소 | 용도 |
+|---|---|
+| `localhost:8080` | API Gateway |
+| `localhost:9000` | auth-server |
+| `localhost:8761` | Eureka 대시보드 |
+
+테스트 (MariaDB·Eureka·Kafka 불필요):
+
+```bash
+cd participation-service && ./gradlew test   # program / settlement / user-service 동일
+cd recommend-service && pip install -r requirements-dev.txt && pytest
+```
+
+상세 흐름: [정산 흐름 백엔드 코드 서술](./정산_흐름_백엔드_코드_서술.md)
 
 ---
 
